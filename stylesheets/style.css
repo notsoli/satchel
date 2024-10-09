@@ -1,0 +1,33 @@
+@font-face {
+    font-family: "Necto Mono";
+    src: url("../assets/NectoMono-Regular.woff2");
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+}
+
+#display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+#source {
+    width: 30%;
+    height: 100%;
+    box-sizing: border-box;
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    font-family: "Necto Mono";
+    resize: none;
+}
+
+#source, #source:focus {
+    border: none;
+    outline: none;
+}

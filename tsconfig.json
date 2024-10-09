@@ -1,0 +1,24 @@
+// https://gist.github.com/t18n/88cebd2b355887351e8080cbb6a6b4ba
+{
+    "compilerOptions": {
+      "target": "esnext",
+      "lib": [
+        "es2015",
+        "dom"
+      ],
+      "types": ["@webgpu/types"],
+      "outDir": "./scripts",
+      "rootDir": "./src",
+      "removeComments": true,
+      "noEmit": false,
+      "strict": true,
+      "noImplicitAny": true,
+      "noEmitOnError": true,
+      "strictNullChecks": true,
+      "noUnusedLocals": true,
+      "noUnusedParameters": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+    },
+    "exclude": ["node_modules"]
+  }
