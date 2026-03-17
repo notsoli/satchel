@@ -1,0 +1,45 @@
+:root {
+    --text: #060d09;
+    --bg: #fff;
+    --border: #e5e4e7;
+    --accent: #3e9c56;
+
+    --text-sm: 16px;
+    --text-md: 18px;
+
+    font-size: var(--text-md);
+    font-family: "Necto Mono", monospace;
+    letter-spacing: 0.18px;
+    color-scheme: light dark;
+    color: var(--text);
+    background: var(--bg);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --text: #f3f4f6;
+        --bg: #161d19;
+        --border: #2e303a;
+        --accent: #3e9c56;
+    }
+}
+
+@font-face {
+    font-family: "Necto Mono";
+    src: url("/fonts/NectoMono-Regular.otf") format("opentype");
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    margin: 0;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
