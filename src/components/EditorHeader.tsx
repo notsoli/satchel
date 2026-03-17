@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from "react";
 import { initializeSharedUniforms, type SharedUniforms } from "../lib/uniforms";
+import Analyzer from "./Analyzer";
 
 export default function EditorHeader({
   uniformsRef,
@@ -18,15 +19,20 @@ export default function EditorHeader({
     return () => cancelAnimationFrame(raf);
   }, [uniformsRef]);
 
+  function onUpdate(result: { u_bands: [number, number, number] }) {
+    const uniforms = uniformsRef.current;
+    uniforms.u_bands = result.u_bands;
+  }
+
   return (
     <header
       style={{
         display: "flex",
-        justifyContent: "space-between",
+        gap: "1rem",
         padding: "0.2rem 0.5rem",
       }}
     >
-      <span>satchel</span>
+      <span style={{ marginRight: "auto" }}>satchel</span>
       <div
         style={{
           display: "flex",
@@ -36,10 +42,27 @@ export default function EditorHeader({
       >
         <span>u_time {uniforms.u_time.toFixed(2)}</span>
         <span>u_frame {uniforms.u_frame}</span>
-        <span>
-          u_bands {uniforms.u_bands.map((b) => b.toFixed(2)).join(" / ")}
-        </span>
+        <span>u_bands</span>
+        <div
+          style={{
+            display: "flex",
+            gap: "0.25rem",
+            alignItems: "flex-end",
+          }}
+        >
+          {uniforms.u_bands.map((band, i) => (
+            <div
+              key={i}
+              style={{
+                width: "20px",
+                height: 2 + 18 * band + "px",
+                backgroundColor: "lightblue",
+              }}
+            />
+          ))}
+        </div>
       </div>
+      <Analyzer onUpdate={onUpdate} />
     </header>
   );
 }
