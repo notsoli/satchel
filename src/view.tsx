@@ -1,10 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import Editor from './components/Editor.tsx'
+import Viewer from './components/Viewer.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Editor />
+    <Viewer />
   </StrictMode>,
 )
