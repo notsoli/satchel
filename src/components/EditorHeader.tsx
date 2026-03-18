@@ -19,9 +19,13 @@ export default function EditorHeader({
     return () => cancelAnimationFrame(raf);
   }, [uniformsRef]);
 
-  function onUpdate(result: { u_bands: [number, number, number] }) {
+  function onUpdate(result: {
+    u_bands: [number, number, number];
+    u_beat: number;
+  }) {
     const uniforms = uniformsRef.current;
     uniforms.u_bands = result.u_bands;
+    uniforms.u_beat = result.u_beat;
   }
 
   return (
@@ -42,7 +46,6 @@ export default function EditorHeader({
       >
         <span>u_time {uniforms.u_time.toFixed(2)}</span>
         <span>u_frame {uniforms.u_frame}</span>
-        <span>u_bands</span>
         <div
           style={{
             display: "flex",
@@ -62,7 +65,7 @@ export default function EditorHeader({
           ))}
         </div>
       </div>
-      <Analyzer onUpdate={onUpdate} />
+      <Analyzer onUpdate={onUpdate} uniformsRef={uniformsRef} />
     </header>
   );
 }

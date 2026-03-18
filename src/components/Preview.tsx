@@ -15,6 +15,7 @@ uniform vec2 u_resolution;
 uniform float u_time;
 uniform int u_frame;
 uniform vec3 u_bands;
+uniform float u_beat;
 
 out vec4 fragColor;
 
@@ -26,6 +27,7 @@ interface DrawState {
   timeLoc: WebGLUniformLocation | null;
   frameLoc: WebGLUniformLocation | null;
   bandsLoc: WebGLUniformLocation | null;
+  beatLoc: WebGLUniformLocation | null;
 }
 
 interface Props {
@@ -86,6 +88,7 @@ export default function Preview({
       gl!.uniform1f(draw.timeLoc, u.u_time);
       gl!.uniform1i(draw.frameLoc, u.u_frame);
       gl!.uniform3f(draw.bandsLoc, u.u_bands[0], u.u_bands[1], u.u_bands[2]);
+      gl!.uniform1f(draw.beatLoc, u.u_beat);
 
       gl!.drawArrays(gl!.TRIANGLES, 0, 6);
     }
@@ -155,6 +158,7 @@ export default function Preview({
       timeLoc: gl.getUniformLocation(program, "u_time"),
       frameLoc: gl.getUniformLocation(program, "u_frame"),
       bandsLoc: gl.getUniformLocation(program, "u_bands"),
+      beatLoc: gl.getUniformLocation(program, "u_beat"),
     };
 
     if (prev) gl.deleteProgram(prev.program);
