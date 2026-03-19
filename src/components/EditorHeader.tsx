@@ -42,28 +42,42 @@ export default function EditorHeader({
           display: "flex",
           gap: "0.5rem",
           fontSize: "var(--text-sm)",
+          color: "var(--text-subtle)",
         }}
       >
-        <span>u_time {uniforms.u_time.toFixed(2)}</span>
-        <span>u_frame {uniforms.u_frame}</span>
-        <div
-          style={{
-            display: "flex",
-            gap: "0.25rem",
-            alignItems: "flex-end",
-          }}
-        >
-          {uniforms.u_bands.map((band, i) => (
-            <div
-              key={i}
-              style={{
-                width: "20px",
-                height: 2 + 18 * band + "px",
-                backgroundColor: "lightblue",
-              }}
-            />
-          ))}
-        </div>
+        <span>
+          u_time:
+          <span style={{ color: "var(--text)", marginLeft: "0.25rem" }}>
+            {uniforms.u_time.toFixed(2)}
+          </span>
+        </span>
+        <span>
+          u_frame:
+          <span style={{ color: "var(--text)", marginLeft: "0.25rem" }}>
+            {uniforms.u_frame}
+          </span>
+        </span>
+        <span style={{ display: "flex", gap: "0.25rem" }}>
+          levels:
+          <div
+            style={{
+              display: "flex",
+              gap: "0.25rem",
+              alignItems: "flex-end",
+            }}
+          >
+            {uniforms.u_bands.map((band, i) => (
+              <div
+                key={i}
+                style={{
+                  width: "10px",
+                  height: 1 + 19 * band + "px",
+                  backgroundColor: "var(--accent)",
+                }}
+              />
+            ))}
+          </div>
+        </span>
       </div>
       <Analyzer onUpdate={onUpdate} uniformsRef={uniformsRef} />
     </header>
