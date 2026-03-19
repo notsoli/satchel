@@ -18,6 +18,7 @@ const INITIAL_SHADER = `// satchel - sam randa
 // a glsl live coding environment with some bells and whistles
 
 // click the microphone icon for audio analysis & beat detection
+// click "view" to open just the shader output in another window
 // additionally, highlight any expression and press Ctrl+P to open a preview
 
 // use these uniforms to help create cool stuff:

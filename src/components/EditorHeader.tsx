@@ -36,7 +36,10 @@ export default function EditorHeader({
         padding: "0.2rem 0.5rem",
       }}
     >
-      <span style={{ marginRight: "auto" }}>satchel</span>
+      <span>satchel</span>
+      <a href="/view/" target="_blank" style={{ marginRight: "auto" }}>
+        view
+      </a>
       <div
         style={{
           display: "flex",
