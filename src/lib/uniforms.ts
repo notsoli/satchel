@@ -17,9 +17,3 @@ export function initializeSharedUniforms(): SharedUniforms {
     u_beat: 0,
   };
 }
-
-export function initializeUniqueUniforms(): UniqueUniforms {
-  return {
-    u_resolution: [0, 0],
-  };
-}

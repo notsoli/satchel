@@ -14,7 +14,20 @@ import { initializeSharedUniforms } from "../lib/uniforms";
 import EditorHeader from "./EditorHeader";
 import { createSender } from "../lib/channel";
 
-const INITIAL_SHADER = `void main() {
+const INITIAL_SHADER = `// satchel - sam randa
+// a glsl live coding environment with some bells and whistles
+
+// click the microphone icon for audio analysis & beat detection
+// additionally, highlight any expression and press Ctrl+P to open a preview
+
+// use these uniforms to help create cool stuff:
+// u_resolution (vec2): the screen resolution
+// u_time (float): how long the editor has been open, in seconds
+// u_frame (int): how many frames of the shader have been rendered
+// u_bands (vec3): audio low/mid/high amplitudes
+// u_beat (float): pulses from 0->1 every beat
+
+void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution;
   fragColor = vec4(uv, abs(sin(u_time)), 1.0);
 }`;
