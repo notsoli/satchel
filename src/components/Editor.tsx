@@ -13,6 +13,8 @@ import Preview from "./Preview";
 import { initializeSharedUniforms } from "../lib/uniforms";
 import EditorHeader from "./EditorHeader";
 import { createSender } from "../lib/channel";
+import Load from "./Load";
+import Save from "./Save";
 
 const INITIAL_SHADER = `// satchel - sam randa
 // a glsl live coding environment with some bells and whistles
@@ -96,6 +98,19 @@ export default function Editor() {
     0, 0,
   ]);
   const [error, setError] = useState<string | null>(null);
+
+  function updateCode(code: string) {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.toString().length,
+        insert: code,
+      },
+    });
+  }
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -186,6 +201,8 @@ export default function Editor() {
       }}
     >
       <EditorHeader uniformsRef={uniformsRef} />
+      <Load updateCode={updateCode} />
+      <Save uniformsRef={uniformsRef} getCode={() => code} />
       <div
         style={{ position: "relative", width: "100vw", height: "0", flex: 1 }}
         onMouseMove={(event) => {

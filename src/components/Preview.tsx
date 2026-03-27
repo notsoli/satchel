@@ -33,7 +33,7 @@ interface DrawState {
 interface Props {
   code: string;
   uniformsRef: RefObject<SharedUniforms>;
-  onFrame?: () => void;
+  onFrame?: (canvas: HTMLCanvasElement) => void;
   onError?: (error: string | null) => void;
 }
 
@@ -43,7 +43,7 @@ export default function Preview({
   onFrame,
   onError,
 }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const onFrameRef = useRef(onFrame);
   const drawRef = useRef<DrawState | null>(null);
 
@@ -78,8 +78,6 @@ export default function Preview({
     function render() {
       raf = requestAnimationFrame(render);
 
-      onFrameRef.current?.();
-
       const draw = drawRef.current;
       if (!draw) return;
 
@@ -91,6 +89,7 @@ export default function Preview({
       gl!.uniform1f(draw.beatLoc, u.u_beat);
 
       gl!.drawArrays(gl!.TRIANGLES, 0, 6);
+      onFrameRef.current?.(canvasRef.current!);
     }
 
     render();
@@ -100,7 +99,7 @@ export default function Preview({
       observer.disconnect();
       gl.deleteBuffer(buf);
     };
-  }, [uniformsRef]);
+  }, [uniformsRef, canvasRef]);
 
   // recompile when code changes — updates drawRef if successful
   useEffect(() => {
@@ -162,7 +161,7 @@ export default function Preview({
     };
 
     if (prev) gl.deleteProgram(prev.program);
-  }, [code, onError]);
+  }, [code, onError, canvasRef]);
 
   return (
     <canvas

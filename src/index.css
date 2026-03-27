@@ -44,3 +44,33 @@ body {
     margin: 0;
     padding: 0;
 }
+
+[popover] {
+    /* Your popover styles */
+    border: none;
+    padding: 1rem;
+    margin: auto;
+    /* backdrop is automatically managed */
+}
+
+[popover]::backdrop {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+button {
+    font-size: var(--text-sm);
+    font-family: "Necto Mono", monospace;
+    cursor: pointer;
+}
+
+input {
+    font-size: var(--text-sm);
+    font-family: "Necto Mono", monospace;
+}
+
+.linkButton {
+    border: none;
+    background-color: transparent;
+    color: var(--accent);
+    text-decoration: underline;
+}

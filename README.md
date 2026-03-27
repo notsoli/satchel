@@ -1,6 +1,15 @@
 # satchel
 
-A GLSL fragment shader editor built for live coding and performance to the specific desires of [Sam Randa](https://samranda.com). Supports live updates and multiple output windows, debug/inspection previews, audio analysis, with save/load down the road.
+A GLSL fragment shader editor built for live coding and performance to the specific desires of [Sam Randa](https://samranda.com). 
+
+Supports:
+- live updates
+- multiple output windows
+- debug/inspection previews
+- audio analysis w/ live beat detection
+- save/load
+
+With [lygia](https://lygia.xyz) support soon.
 
 ## Keybinds
 

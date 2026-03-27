@@ -37,9 +37,19 @@ export default function EditorHeader({
       }}
     >
       <span>satchel</span>
-      <a href="/view/" target="_blank" style={{ marginRight: "auto" }}>
+      <a
+        href="/view/"
+        target="_blank"
+        style={{ marginRight: "auto", color: "var(--accent)" }}
+      >
         view
       </a>
+      <button popoverTarget="save-popover" className="linkButton">
+        save
+      </button>
+      <button popoverTarget="load-popover" className="linkButton">
+        load
+      </button>
       <div
         style={{
           display: "flex",
