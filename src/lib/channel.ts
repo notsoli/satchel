@@ -1,8 +1,9 @@
-import type { SharedUniforms } from "./uniforms";
+import type { SharedUniforms, CustomUniforms } from "./uniforms";
 
 type Message =
   | { type: "shader"; code: string }
-  | { type: "uniforms"; uniforms: SharedUniforms };
+  | { type: "uniforms"; uniforms: SharedUniforms & CustomUniforms }
+  | { type: "customUniformNames"; names: string[] };
 
 const NAME = "satchel";
 
@@ -10,8 +11,10 @@ export function createSender() {
   const ch = new BroadcastChannel(NAME);
   return {
     sendShader: (code: string) => ch.postMessage({ type: "shader", code }),
-    sendUniforms: (uniforms: SharedUniforms) =>
+    sendUniforms: (uniforms: SharedUniforms & CustomUniforms) =>
       ch.postMessage({ type: "uniforms", uniforms }),
+    sendCustomUniformNames: (names: string[]) =>
+      ch.postMessage({ type: "customUniformNames", names }),
     close: () => ch.close(),
   };
 }

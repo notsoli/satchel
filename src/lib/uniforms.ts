@@ -9,11 +9,13 @@ export type UniqueUniforms = {
   u_resolution: [number, number];
 };
 
-export function initializeSharedUniforms(): SharedUniforms {
+export type CustomUniforms = Record<string, number>;
+
+export function initializeSharedUniforms(): SharedUniforms & CustomUniforms {
   return {
     u_time: 0,
     u_frame: 0,
     u_bands: [0, 0, 0],
     u_beat: 0,
-  };
+  } as SharedUniforms & CustomUniforms;
 }

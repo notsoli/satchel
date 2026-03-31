@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { EditorState } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers } from "@codemirror/view";
+import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, historyKeymap, history } from "@codemirror/commands";
 import {
   StreamLanguage,
@@ -9,8 +9,13 @@ import {
 } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { shader } from "@codemirror/legacy-modes/mode/clike";
+import { javascript } from "@codemirror/legacy-modes/mode/javascript";
 import Preview from "./Preview";
-import { initializeSharedUniforms } from "../lib/uniforms";
+import {
+  initializeSharedUniforms,
+  type CustomUniforms,
+  type SharedUniforms,
+} from "../lib/uniforms";
 import EditorHeader from "./EditorHeader";
 import { createSender } from "../lib/channel";
 import Load from "./Load";
@@ -34,6 +39,20 @@ void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution;
   fragColor = vec4(uv, abs(sin(u_time)), 1.0);
 }`;
+
+const INITIAL_PROCESS = `// custom uniforms
+  // runs once - declare persistent variables here
+let bassAccumulator = 0;
+
+// runs every frame - calculate custom uniforms here
+function process(input) {
+  bassAccumulator += input.u_bands[0];
+
+  return {
+    u_bassAccumulator: bassAccumulator
+  };
+}
+`;
 
 const GRADUATE =
   "vec4 graduate(float v) { return vec4(v, v, v, 1.0); }\n" +
@@ -74,62 +93,84 @@ const theme = EditorView.theme({
     backgroundColor: "rgba(0,0,0,0.6)",
     width: "fit-content",
   },
-  ".cm-gutters": {
-    display: "none",
-  },
-  ".cm-activeLineGutter": { background: "transparent" },
-  ".cm-activeLine": { background: "rgba(255,255,255,0.04)" },
   ".cm-cursor": { borderLeftColor: "var(--accent)" },
-  ".cm-selectionBackground": { background: "rgba(62,156,86,0.3) !important" },
 });
 
 export default function Editor() {
-  const editorRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
+  const shaderEditorRef = useRef<HTMLDivElement>(null);
+  const shaderViewRef = useRef<EditorView | null>(null);
+  const processEditorRef = useRef<HTMLDivElement>(null);
+  const processViewRef = useRef<EditorView | null>(null);
   const uniformsRef = useRef(initializeSharedUniforms());
   const startTimeRef = useRef(0);
   const senderRef = useRef<ReturnType<typeof createSender> | null>(null);
   const selectionRef = useRef<[number, number]>([0, 0]);
   const cursorPositionRef = useRef<[number, number]>([0, 0]);
+  const processFnRef = useRef<
+    ((input: SharedUniforms) => CustomUniforms) | null
+  >(null);
 
-  const [code, setCode] = useState(INITIAL_SHADER);
+  const [mode, setMode] = useState<"shader" | "process">("shader");
+  const [shaderCode, setShaderCode] = useState(INITIAL_SHADER);
+  const [processCode, setProcessCode] = useState(INITIAL_PROCESS);
+  const [customUniformNames, setCustomUniformNames] = useState<string[]>([]);
   const [inspectCode, setInspectCode] = useState<null | string>(null);
   const [inspectPosition, setInspectPosition] = useState<[number, number]>([
     0, 0,
   ]);
-  const [error, setError] = useState<string | null>(null);
+  const [shaderError, setShaderError] = useState<string | null>(null);
+  const [processError, setProcessError] = useState<string | null>(null);
 
   function updateCode(code: string) {
-    const view = viewRef.current;
-    if (!view) return;
+    const shaderView = shaderViewRef.current;
+    if (!shaderView) return;
 
-    view.dispatch({
+    shaderView.dispatch({
       changes: {
         from: 0,
-        to: view.state.doc.toString().length,
+        to: shaderView.state.doc.toString().length,
         insert: code,
       },
     });
   }
 
+  // watch processCode
+  useEffect(() => {
+    try {
+      processFnRef.current = eval(`
+        ${processCode}
+        process; // return the function
+      `);
+      setProcessError(null);
+    } catch (err) {
+      console.error("Process code error:", err);
+      processFnRef.current = null;
+    }
+  }, [processCode]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (mode !== "shader") return;
       if ((event.ctrlKey || event.metaKey) && event.key === "p") {
         event.preventDefault();
         setInspectCode(null);
-        setError(null);
+        setShaderError(null);
 
         const [from, to] = selectionRef.current;
         if (to - from == 0) return;
 
         // generate shader code for inspect, coercing into
         // vec4 and routing directly to fragColor
-        const semicolonIdx = code.indexOf(";", to);
+        const semicolonIdx = shaderCode.indexOf(";", to);
         const newCode =
           GRADUATE +
-          code.slice(0, semicolonIdx + 1).replace(/fragColor\s*=[^;]*;/gs, "") +
-          `\nfragColor = graduate(${code.slice(from, to)});` +
-          code.slice(semicolonIdx + 1).replace(/fragColor\s*=[^;]*;/gs, "");
+          shaderCode
+            .slice(0, semicolonIdx + 1)
+            .replace(/fragColor\s*=[^;]*;/gs, "") +
+          `\nfragColor = graduate(${shaderCode.slice(from, to)});` +
+          shaderCode
+            .slice(semicolonIdx + 1)
+            .replace(/fragColor\s*=[^;]*;/gs, "");
 
         setInspectCode(newCode);
         setInspectPosition([
@@ -143,7 +184,7 @@ export default function Editor() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [code]);
+  }, [shaderCode, mode]);
 
   useEffect(() => {
     startTimeRef.current = performance.now();
@@ -160,22 +201,51 @@ export default function Editor() {
     };
   }, []);
 
+  // Eval process code and extract custom uniform names
   useEffect(() => {
-    const view = new EditorView({
-      parent: editorRef.current!,
+    try {
+      const fn = new Function(`
+        ${processCode}
+        return process;
+      `);
+      processFnRef.current = fn() as (input: SharedUniforms) => CustomUniforms;
+
+      // Call with dummy data to get custom uniform names
+      const dummyInput: SharedUniforms = {
+        u_time: 0,
+        u_frame: 0,
+        u_bands: [0, 0, 0],
+        u_beat: 0,
+      };
+      const result = processFnRef.current(dummyInput);
+      const names = Object.keys(result || {});
+      setCustomUniformNames(names);
+      senderRef.current?.sendCustomUniformNames(names);
+    } catch (err) {
+      setProcessError(
+        "ERROR: " + (err instanceof Error ? err.message : String(err)),
+      );
+      processFnRef.current = null;
+      setCustomUniformNames([]);
+      senderRef.current?.sendCustomUniformNames([]);
+    }
+  }, [processCode]);
+
+  useEffect(() => {
+    const shaderView = new EditorView({
+      parent: shaderEditorRef.current!,
       state: EditorState.create({
         doc: INITIAL_SHADER,
         extensions: [
           history(),
           keymap.of([...defaultKeymap, ...historyKeymap]),
-          lineNumbers(),
           StreamLanguage.define(shader),
           syntaxHighlighting(highlightStyle),
           theme,
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               const code = update.state.doc.toString();
-              setCode(code);
+              setShaderCode(code);
               senderRef.current?.sendShader(code);
             }
             if (update.selectionSet) {
@@ -188,8 +258,32 @@ export default function Editor() {
       }),
     });
 
-    viewRef.current = view;
-    return () => view.destroy();
+    const processView = new EditorView({
+      parent: processEditorRef.current!,
+      state: EditorState.create({
+        doc: INITIAL_PROCESS,
+        extensions: [
+          history(),
+          keymap.of([...defaultKeymap, ...historyKeymap]),
+          StreamLanguage.define(javascript),
+          syntaxHighlighting(highlightStyle),
+          theme,
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              const code = update.state.doc.toString();
+              setProcessCode(code);
+            }
+          }),
+        ],
+      }),
+    });
+
+    shaderViewRef.current = shaderView;
+    processViewRef.current = processView;
+    return () => {
+      shaderView.destroy();
+      processView.destroy();
+    };
   }, []);
 
   return (
@@ -200,9 +294,9 @@ export default function Editor() {
         height: "100vh",
       }}
     >
-      <EditorHeader uniformsRef={uniformsRef} />
+      <EditorHeader uniformsRef={uniformsRef} mode={mode} setMode={setMode} />
       <Load updateCode={updateCode} />
-      <Save uniformsRef={uniformsRef} getCode={() => code} />
+      <Save uniformsRef={uniformsRef} getCode={() => shaderCode} />
       <div
         style={{ position: "relative", width: "100vw", height: "0", flex: 1 }}
         onMouseMove={(event) => {
@@ -215,20 +309,53 @@ export default function Editor() {
       >
         <div style={{ position: "absolute", inset: 0 }}>
           <Preview
-            code={code}
+            code={shaderCode}
             uniformsRef={uniformsRef}
+            customUniformNames={customUniformNames}
             onFrame={() => {
               const u = uniformsRef.current;
               u.u_time = (performance.now() - startTimeRef.current) / 1000;
               u.u_frame += 1;
-              // TODO: u.u_bands = readAudioBands()
+
+              // Call the process function if it exists
+              if (processFnRef.current) {
+                try {
+                  const customUniforms = processFnRef.current({
+                    u_time: u.u_time,
+                    u_frame: u.u_frame,
+                    u_bands: u.u_bands,
+                    u_beat: u.u_beat,
+                  });
+
+                  // Merge custom uniforms into the uniform ref
+                  Object.assign(u, customUniforms);
+                } catch (err) {
+                  console.error("Process function error:", err);
+                }
+              }
+
               senderRef.current?.sendUniforms(uniformsRef.current);
             }}
-            onError={setError}
+            onError={setShaderError}
           />
         </div>
-        <div ref={editorRef} style={{ position: "absolute", inset: 0 }} />
-        {error && (
+        <div
+          ref={shaderEditorRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: mode === "shader" ? "block" : "none",
+          }}
+        />
+        <div
+          ref={processEditorRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: mode === "process" ? "block" : "none",
+          }}
+        />
+        {(shaderError || processError) && (
           <pre
             style={{
               position: "absolute",
@@ -245,7 +372,7 @@ export default function Editor() {
               pointerEvents: "none",
             }}
           >
-            {error}
+            {mode === "shader" ? shaderError : processError}
           </pre>
         )}
         {inspectCode !== null && (
@@ -264,7 +391,7 @@ export default function Editor() {
               uniformsRef={uniformsRef}
               onError={(error) => {
                 if (!error) return;
-                setError(`CAN'T INSPECT:\n${error}`);
+                setShaderError(`CAN'T INSPECT:\n${error}`);
               }}
             />
           </div>

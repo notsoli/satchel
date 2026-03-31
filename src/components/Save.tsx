@@ -1,5 +1,5 @@
 import { useRef, useState, type RefObject } from "react";
-import type { SharedUniforms } from "../lib/uniforms";
+import type { CustomUniforms, SharedUniforms } from "../lib/uniforms";
 import Preview from "./Preview";
 import { saveShader } from "../lib/persistence";
 
@@ -7,7 +7,7 @@ export default function Save({
   uniformsRef,
   getCode,
 }: {
-  uniformsRef: RefObject<SharedUniforms>;
+  uniformsRef: RefObject<SharedUniforms & CustomUniforms>;
   getCode: () => string;
 }) {
   const [name, setName] = useState(new Date().toISOString());

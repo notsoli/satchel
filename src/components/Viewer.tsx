@@ -13,6 +13,7 @@ export default function Viewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const uniformsRef = useRef(initializeSharedUniforms());
   const [code, setCode] = useState(testShader);
+  const [customUniformNames, setCustomUniformNames] = useState<string[]>([]);
   const [hasSender, setHasSender] = useState(false);
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export default function Viewer() {
       setHasSender(true);
       if (msg.type === "shader") setCode(msg.code);
       if (msg.type === "uniforms") uniformsRef.current = msg.uniforms;
+      if (msg.type === "customUniformNames") setCustomUniformNames(msg.names);
     });
     return () => {
       receiver.close();
@@ -58,7 +60,11 @@ export default function Viewer() {
 
   return (
     <div ref={containerRef} style={{ width: "100vw", height: "100vh" }}>
-      <Preview code={code} uniformsRef={uniformsRef} />
+      <Preview 
+        code={code} 
+        uniformsRef={uniformsRef} 
+        customUniformNames={customUniformNames}
+      />
     </div>
   );
 }

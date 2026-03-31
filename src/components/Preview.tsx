@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
-import type { SharedUniforms } from "../lib/uniforms";
+import type { CustomUniforms, SharedUniforms } from "../lib/uniforms";
 
 const VERT = `#version 300 es
 in vec2 a_position;
@@ -8,31 +8,15 @@ void main() {
   gl_Position = vec4(a_position, 0.0, 1.0);
 }`;
 
-const FRAG_PREFIX = `#version 300 es
-precision highp float;
-
-uniform vec2 u_resolution;
-uniform float u_time;
-uniform int u_frame;
-uniform vec3 u_bands;
-uniform float u_beat;
-
-out vec4 fragColor;
-
-`;
-
 interface DrawState {
   program: WebGLProgram;
-  resLoc: WebGLUniformLocation | null;
-  timeLoc: WebGLUniformLocation | null;
-  frameLoc: WebGLUniformLocation | null;
-  bandsLoc: WebGLUniformLocation | null;
-  beatLoc: WebGLUniformLocation | null;
+  uniformLocations: Map<string, WebGLUniformLocation | null>;
 }
 
 interface Props {
   code: string;
-  uniformsRef: RefObject<SharedUniforms>;
+  uniformsRef: RefObject<SharedUniforms & CustomUniforms>;
+  customUniformNames?: string[];
   onFrame?: (canvas: HTMLCanvasElement) => void;
   onError?: (error: string | null) => void;
 }
@@ -40,6 +24,7 @@ interface Props {
 export default function Preview({
   code,
   uniformsRef,
+  customUniformNames,
   onFrame,
   onError,
 }: Props) {
@@ -76,20 +61,37 @@ export default function Preview({
     let raf: number;
 
     function render() {
+      if (!gl) return;
+
+      onFrameRef.current?.(canvas); // <-- Call the onFrame callback from Editor!
       raf = requestAnimationFrame(render);
 
       const draw = drawRef.current;
       if (!draw) return;
 
-      const u = uniformsRef.current!;
-      gl!.uniform2f(draw.resLoc, canvas.width, canvas.height);
-      gl!.uniform1f(draw.timeLoc, u.u_time);
-      gl!.uniform1i(draw.frameLoc, u.u_frame);
-      gl!.uniform3f(draw.bandsLoc, u.u_bands[0], u.u_bands[1], u.u_bands[2]);
-      gl!.uniform1f(draw.beatLoc, u.u_beat);
+      const u = uniformsRef.current;
+      const locs = draw.uniformLocations;
 
-      gl!.drawArrays(gl!.TRIANGLES, 0, 6);
-      onFrameRef.current?.(canvasRef.current!);
+      gl.uniform2f(locs.get("u_resolution")!, canvas.width, canvas.height);
+      gl.uniform1f(locs.get("u_time")!, u.u_time);
+      gl.uniform1i(locs.get("u_frame")!, u.u_frame);
+      gl.uniform3f(
+        locs.get("u_bands")!,
+        u.u_bands[0],
+        u.u_bands[1],
+        u.u_bands[2],
+      );
+      gl.uniform1f(locs.get("u_beat")!, u.u_beat);
+
+      // Set custom uniforms
+      for (const name of customUniformNames || []) {
+        const value = u[name];
+        if (value !== undefined) {
+          gl.uniform1f(locs.get(name)!, value);
+        }
+      }
+
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
 
     render();
@@ -99,7 +101,7 @@ export default function Preview({
       observer.disconnect();
       gl.deleteBuffer(buf);
     };
-  }, [uniformsRef, canvasRef]);
+  }, [uniformsRef, canvasRef, customUniformNames]);
 
   // recompile when code changes — updates drawRef if successful
   useEffect(() => {
@@ -119,10 +121,29 @@ export default function Preview({
       return { shader, error: null };
     }
 
+    const customUniformDeclarations = (customUniformNames || [])
+      .map((name) => `uniform float ${name};`)
+      .join("\n");
+
+    const fragPrefix = `#version 300 es
+    precision highp float;
+
+    uniform vec2 u_resolution;
+    uniform float u_time;
+    uniform int u_frame;
+    uniform vec3 u_bands;
+    uniform float u_beat;
+    ${customUniformDeclarations}
+
+    out vec4 fragColor;
+
+    `;
+    console.log(fragPrefix);
+
     const { shader: vert, error: vertError } = compile(gl.VERTEX_SHADER, VERT);
     const { shader: frag, error: fragError } = compile(
       gl.FRAGMENT_SHADER,
-      FRAG_PREFIX + code,
+      fragPrefix + code,
     );
 
     if (!vert || !frag) {
@@ -151,17 +172,26 @@ export default function Preview({
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
     const prev = drawRef.current;
-    drawRef.current = {
-      program,
-      resLoc: gl.getUniformLocation(program, "u_resolution"),
-      timeLoc: gl.getUniformLocation(program, "u_time"),
-      frameLoc: gl.getUniformLocation(program, "u_frame"),
-      bandsLoc: gl.getUniformLocation(program, "u_bands"),
-      beatLoc: gl.getUniformLocation(program, "u_beat"),
-    };
+
+    const uniformLocations = new Map<string, WebGLUniformLocation | null>();
+    uniformLocations.set(
+      "u_resolution",
+      gl.getUniformLocation(program, "u_resolution"),
+    );
+    uniformLocations.set("u_time", gl.getUniformLocation(program, "u_time"));
+    uniformLocations.set("u_frame", gl.getUniformLocation(program, "u_frame"));
+    uniformLocations.set("u_bands", gl.getUniformLocation(program, "u_bands"));
+    uniformLocations.set("u_beat", gl.getUniformLocation(program, "u_beat"));
+
+    // Add custom uniforms
+    for (const name of customUniformNames || []) {
+      uniformLocations.set(name, gl.getUniformLocation(program, name));
+    }
+
+    drawRef.current = { program, uniformLocations };
 
     if (prev) gl.deleteProgram(prev.program);
-  }, [code, onError, canvasRef]);
+  }, [code, customUniformNames, onError]);
 
   return (
     <canvas

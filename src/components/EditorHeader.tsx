@@ -1,11 +1,19 @@
 import { useEffect, useState, type RefObject } from "react";
-import { initializeSharedUniforms, type SharedUniforms } from "../lib/uniforms";
+import {
+  initializeSharedUniforms,
+  type CustomUniforms,
+  type SharedUniforms,
+} from "../lib/uniforms";
 import Analyzer from "./Analyzer";
 
 export default function EditorHeader({
   uniformsRef,
+  mode,
+  setMode,
 }: {
   uniformsRef: RefObject<SharedUniforms>;
+  mode: "shader" | "process";
+  setMode: (mode: "shader" | "process") => void;
 }) {
   const [uniforms, setUniforms] = useState(initializeSharedUniforms());
 
@@ -13,7 +21,8 @@ export default function EditorHeader({
     let raf: number;
     function tick() {
       raf = requestAnimationFrame(tick);
-      setUniforms({ ...uniformsRef.current });
+      setUniforms({ ...uniformsRef.current } as SharedUniforms &
+        CustomUniforms);
     }
     tick();
     return () => cancelAnimationFrame(raf);
@@ -37,13 +46,33 @@ export default function EditorHeader({
       }}
     >
       <span>satchel</span>
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        <button
+          onClick={() => setMode("shader")}
+          className="linkButton"
+          style={{
+            color: mode === "shader" ? "var(--accent)" : "var(--text-subtle)",
+          }}
+        >
+          shader
+        </button>
+        <button
+          onClick={() => setMode("process")}
+          className="linkButton"
+          style={{
+            color: mode === "process" ? "var(--accent)" : "var(--text-subtle)",
+          }}
+        >
+          process
+        </button>
+      </div>
       <a
         href="/view/"
         target="_blank"
-        style={{ marginRight: "auto", color: "var(--accent)" }}
+        style={{ marginLeft: "auto", color: "var(--accent)" }}
       >
         view
-      </a>
+      </a>{" "}
       <button popoverTarget="save-popover" className="linkButton">
         save
       </button>
