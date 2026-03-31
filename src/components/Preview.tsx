@@ -36,13 +36,12 @@ export default function Preview({
     onFrameRef.current = onFrame;
   });
 
-  // persistent render loop — always runs, always calls onFrame
+  // persistent render loop
   useEffect(() => {
     const canvas = canvasRef.current!;
     const gl = canvas.getContext("webgl2");
     if (!gl) return;
 
-    // fullscreen quad — two triangles covering clip space
     const buf = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(
@@ -102,7 +101,7 @@ export default function Preview({
     };
   }, [uniformsRef, canvasRef, customUniformNames]);
 
-  // recompile when code changes — updates drawRef if successful
+  // recompile when code changes
   useEffect(() => {
     const canvas = canvasRef.current!;
     const gl = canvas.getContext("webgl2");
