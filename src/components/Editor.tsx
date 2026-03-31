@@ -41,10 +41,11 @@ void main() {
 }`;
 
 const INITIAL_PROCESS = `// custom uniforms
-  // runs once - declare persistent variables here
+// runs once - declare persistent variables here
 let bassAccumulator = 0;
 
 // runs every frame - calculate custom uniforms here
+// uniforms must be numbers, and integers will be converted to floats (for now)
 function process(input) {
   bassAccumulator += input.u_bands[0];
 
@@ -234,7 +235,15 @@ export default function Editor() {
         u_beat: 0,
       };
       const result = processFnRef.current(dummyInput);
-      const names = Object.keys(result || {});
+      const names = [];
+      for (const name in result) {
+        if (typeof result[name] !== "number") {
+          setProcessError(`ERROR: custom uniform ${name} is not a number`);
+        } else {
+          names.push(name);
+        }
+      }
+
       setCustomUniformNames(names);
       senderRef.current?.sendCustomUniformNames(names);
     } catch (err) {
@@ -342,7 +351,7 @@ export default function Editor() {
               u.u_time = (performance.now() - startTimeRef.current) / 1000;
               u.u_frame += 1;
 
-              // Call the process function if it exists
+              // call the process function if it exists
               if (processFnRef.current) {
                 try {
                   const customUniforms = processFnRef.current({
@@ -352,8 +361,12 @@ export default function Editor() {
                     u_beat: u.u_beat,
                   });
 
-                  // Merge custom uniforms into the uniform ref
-                  Object.assign(u, customUniforms);
+                  // merge custom uniforms into the uniform ref
+                  for (const name of customUniformNames) {
+                    if (customUniforms[name] !== undefined) {
+                      u[name] = customUniforms[name];
+                    }
+                  }
                 } catch (err) {
                   console.error("Process function error:", err);
                 }
