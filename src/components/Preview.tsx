@@ -63,7 +63,7 @@ export default function Preview({
     function render() {
       if (!gl) return;
 
-      onFrameRef.current?.(canvas); // <-- Call the onFrame callback from Editor!
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
       raf = requestAnimationFrame(render);
 
       const draw = drawRef.current;
@@ -90,8 +90,7 @@ export default function Preview({
           gl.uniform1f(locs.get(name)!, value);
         }
       }
-
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      onFrameRef.current?.(canvas);
     }
 
     render();
@@ -138,7 +137,6 @@ export default function Preview({
     out vec4 fragColor;
 
     `;
-    console.log(fragPrefix);
 
     const { shader: vert, error: vertError } = compile(gl.VERTEX_SHADER, VERT);
     const { shader: frag, error: fragError } = compile(

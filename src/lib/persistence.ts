@@ -6,7 +6,8 @@ const DB_VERSION = 1;
 
 interface ShaderRecord {
   id?: number;
-  code: string;
+  shaderCode: string;
+  processCode: string;
   preview: Blob;
   name: string;
   createdAt: number;
@@ -37,13 +38,15 @@ function getDB() {
 }
 
 export async function saveShader(
-  code: string,
+  shaderCode: string,
+  processCode: string,
   preview: Blob,
   name: string,
 ): Promise<number> {
   const db = await getDB();
   const id = await db.add(STORE_NAME, {
-    code,
+    shaderCode,
+    processCode,
     preview,
     name,
     createdAt: Date.now(),
@@ -67,11 +70,11 @@ export async function listShaders(): Promise<ShaderListItem[]> {
   }));
 }
 
-export async function loadShader(id: number): Promise<string> {
+export async function loadShader(id: number): Promise<ShaderRecord> {
   const db = await getDB();
   const record = await db.get(STORE_NAME, id);
   if (!record) throw new Error(`Shader ${id} not found`);
-  return record.code;
+  return record;
 }
 
 export async function deleteShader(id: number): Promise<void> {

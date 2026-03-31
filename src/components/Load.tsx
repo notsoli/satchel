@@ -7,9 +7,11 @@ import {
 } from "../lib/persistence";
 
 export default function Load({
-  updateCode,
+  updateShaderCode,
+  updateProcessCode,
 }: {
-  updateCode: (code: string) => void;
+  updateShaderCode: (code: string) => void;
+  updateProcessCode: (code: string) => void;
 }) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState<ShaderListItem[]>([]);
@@ -35,7 +37,9 @@ export default function Load({
   }
 
   async function loadItem(id: number) {
-    updateCode(await loadShader(id));
+    const item = await loadShader(id);
+    updateShaderCode(item.shaderCode);
+    updateProcessCode(item.processCode);
     popoverRef.current?.hidePopover();
   }
 
@@ -64,7 +68,12 @@ export default function Load({
     >
       {items.map((item) => (
         <div key={item.id} style={{ display: "flex", gap: "0.5rem" }}>
-          <img key={item.id} src={URL.createObjectURL(item.preview)} />
+          <img
+            key={item.id}
+            src={URL.createObjectURL(item.preview)}
+            width={100}
+            height={100}
+          />
           <div
             style={{
               display: "flex",

@@ -5,37 +5,46 @@ import { saveShader } from "../lib/persistence";
 
 export default function Save({
   uniformsRef,
-  getCode,
+  customUniformNames,
+  getShaderCode,
+  getProcessCode,
 }: {
   uniformsRef: RefObject<SharedUniforms & CustomUniforms>;
-  getCode: () => string;
+  customUniformNames: string[];
+  getShaderCode: () => string;
+  getProcessCode: () => string;
 }) {
   const [name, setName] = useState(new Date().toISOString());
-  const [code, setCode] = useState("");
+  const [shaderCode, setShaderCode] = useState("");
+  const [processCode, setProcessCode] = useState("");
+
   const [saving, setSaving] = useState(false);
   const savedRef = useRef(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   function triggerSave() {
     savedRef.current = false;
-    setCode(getCode());
+    setShaderCode(getShaderCode());
+    setProcessCode(getProcessCode());
   }
 
   function save(canvas: HTMLCanvasElement) {
     if (saving || savedRef.current) return;
-    if (!canvas || canvas.width !== 100 || canvas.height !== 100) return;
+    if (!canvas || (canvas.width === 300 && canvas.height === 150)) return;
 
     savedRef.current = true;
     setSaving(true);
 
     canvas.toBlob(async (preview) => {
       if (!preview) return;
-      const code = getCode();
+      const shaderCode = getShaderCode();
 
-      await saveShader(code, preview, name);
+      await saveShader(shaderCode, processCode, preview, name);
 
-      setCode("");
+      setShaderCode("");
+      setProcessCode("");
       setSaving(false);
+
       popoverRef.current?.hidePopover();
     });
   }
@@ -61,7 +70,7 @@ export default function Save({
         id={"nameInput"}
       />
       <button onClick={triggerSave}>save</button>
-      {code && (
+      {shaderCode && processCode && (
         <div
           style={{
             width: "100px",
@@ -71,7 +80,12 @@ export default function Save({
             left: "-9999px",
           }}
         >
-          <Preview code={code} uniformsRef={uniformsRef} onFrame={save} />
+          <Preview
+            code={shaderCode}
+            customUniformNames={customUniformNames}
+            uniformsRef={uniformsRef}
+            onFrame={save}
+          />
         </div>
       )}
     </div>

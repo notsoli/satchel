@@ -121,7 +121,7 @@ export default function Editor() {
   const [shaderError, setShaderError] = useState<string | null>(null);
   const [processError, setProcessError] = useState<string | null>(null);
 
-  function updateCode(code: string) {
+  function updateShaderCode(code: string) {
     const shaderView = shaderViewRef.current;
     if (!shaderView) return;
 
@@ -129,6 +129,19 @@ export default function Editor() {
       changes: {
         from: 0,
         to: shaderView.state.doc.toString().length,
+        insert: code,
+      },
+    });
+  }
+
+  function updateProcessCode(code: string) {
+    const processView = processViewRef.current;
+    if (!processView) return;
+
+    processView.dispatch({
+      changes: {
+        from: 0,
+        to: processView.state.doc.toString().length,
         insert: code,
       },
     });
@@ -148,6 +161,7 @@ export default function Editor() {
     }
   }, [processCode]);
 
+  // handle key down for inspect
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (mode !== "shader") return;
@@ -186,10 +200,12 @@ export default function Editor() {
     };
   }, [shaderCode, mode]);
 
+  // kickstart time uniform
   useEffect(() => {
     startTimeRef.current = performance.now();
   }, []);
 
+  // send shader and uniforms on mount
   useEffect(() => {
     senderRef.current = createSender();
     senderRef.current?.sendShader(INITIAL_SHADER);
@@ -201,7 +217,7 @@ export default function Editor() {
     };
   }, []);
 
-  // Eval process code and extract custom uniform names
+  // eval process code and extract custom uniform names
   useEffect(() => {
     try {
       const fn = new Function(`
@@ -210,7 +226,7 @@ export default function Editor() {
       `);
       processFnRef.current = fn() as (input: SharedUniforms) => CustomUniforms;
 
-      // Call with dummy data to get custom uniform names
+      // call with dummy data to get custom uniform names
       const dummyInput: SharedUniforms = {
         u_time: 0,
         u_frame: 0,
@@ -231,6 +247,7 @@ export default function Editor() {
     }
   }, [processCode]);
 
+  // create codemirror views for shader & process editor
   useEffect(() => {
     const shaderView = new EditorView({
       parent: shaderEditorRef.current!,
@@ -295,8 +312,16 @@ export default function Editor() {
       }}
     >
       <EditorHeader uniformsRef={uniformsRef} mode={mode} setMode={setMode} />
-      <Load updateCode={updateCode} />
-      <Save uniformsRef={uniformsRef} getCode={() => shaderCode} />
+      <Load
+        updateShaderCode={updateShaderCode}
+        updateProcessCode={updateProcessCode}
+      />
+      <Save
+        uniformsRef={uniformsRef}
+        getShaderCode={() => shaderCode}
+        getProcessCode={() => processCode}
+        customUniformNames={customUniformNames}
+      />
       <div
         style={{ position: "relative", width: "100vw", height: "0", flex: 1 }}
         onMouseMove={(event) => {
