@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
 import type { CustomUniforms, SharedUniforms } from "../lib/uniforms";
+import { preprocess } from "../lib/preprocess";
 
 const VERT = `#version 300 es
 in vec2 a_position;
@@ -103,91 +104,88 @@ export default function Preview({
 
   // recompile when code changes
   useEffect(() => {
-    const canvas = canvasRef.current!;
-    const gl = canvas.getContext("webgl2");
-    if (!gl) return;
+    const recompile = async () => {
+      const canvas = canvasRef.current!;
+      const gl = canvas.getContext("webgl2");
+      if (!gl) return;
 
-    function compile(type: number, src: string) {
-      const shader = gl!.createShader(type)!;
-      gl!.shaderSource(shader, src);
-      gl!.compileShader(shader);
-      if (!gl!.getShaderParameter(shader, gl!.COMPILE_STATUS)) {
-        const log = gl!.getShaderInfoLog(shader);
-        gl!.deleteShader(shader);
-        return { shader: null, error: log };
+      function compile(type: number, src: string) {
+        const shader = gl!.createShader(type)!;
+        gl!.shaderSource(shader, src);
+        gl!.compileShader(shader);
+        if (!gl!.getShaderParameter(shader, gl!.COMPILE_STATUS)) {
+          const log = gl!.getShaderInfoLog(shader);
+          gl!.deleteShader(shader);
+          return { shader: null, error: log };
+        }
+        return { shader, error: null };
       }
-      return { shader, error: null };
-    }
 
-    const customUniformDeclarations = (customUniformNames || [])
-      .map((name) => `uniform float ${name};`)
-      .join("\n");
+      const fragCode = await preprocess(code, customUniformNames);
 
-    const fragPrefix = `#version 300 es
-    precision highp float;
+      const { shader: vert, error: vertError } = compile(
+        gl.VERTEX_SHADER,
+        VERT,
+      );
+      const { shader: frag, error: fragError } = compile(
+        gl.FRAGMENT_SHADER,
+        fragCode,
+      );
 
-    uniform vec2 u_resolution;
-    uniform float u_time;
-    uniform int u_frame;
-    uniform vec3 u_bands;
-    uniform float u_beat;
-    ${customUniformDeclarations}
+      if (!vert || !frag) {
+        onError?.(vertError ?? fragError);
+        return;
+      }
 
-    out vec4 fragColor;
+      const program = gl.createProgram()!;
+      gl.attachShader(program, vert);
+      gl.attachShader(program, frag);
+      gl.linkProgram(program);
+      gl.deleteShader(vert);
+      gl.deleteShader(frag);
 
-    `;
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        onError?.(gl.getProgramInfoLog(program));
+        gl.deleteProgram(program);
+        return;
+      }
 
-    const { shader: vert, error: vertError } = compile(gl.VERTEX_SHADER, VERT);
-    const { shader: frag, error: fragError } = compile(
-      gl.FRAGMENT_SHADER,
-      fragPrefix + code,
-    );
+      onError?.(null);
+      gl.useProgram(program);
 
-    if (!vert || !frag) {
-      onError?.(vertError ?? fragError);
-      return;
-    }
+      const posLoc = gl.getAttribLocation(program, "a_position");
+      gl.enableVertexAttribArray(posLoc);
+      gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
 
-    const program = gl.createProgram()!;
-    gl.attachShader(program, vert);
-    gl.attachShader(program, frag);
-    gl.linkProgram(program);
-    gl.deleteShader(vert);
-    gl.deleteShader(frag);
+      const prev = drawRef.current;
 
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      onError?.(gl.getProgramInfoLog(program));
-      gl.deleteProgram(program);
-      return;
-    }
+      const uniformLocations = new Map<string, WebGLUniformLocation | null>();
+      uniformLocations.set(
+        "u_resolution",
+        gl.getUniformLocation(program, "u_resolution"),
+      );
+      uniformLocations.set("u_time", gl.getUniformLocation(program, "u_time"));
+      uniformLocations.set(
+        "u_frame",
+        gl.getUniformLocation(program, "u_frame"),
+      );
+      uniformLocations.set(
+        "u_bands",
+        gl.getUniformLocation(program, "u_bands"),
+      );
+      uniformLocations.set("u_beat", gl.getUniformLocation(program, "u_beat"));
 
-    onError?.(null);
-    gl.useProgram(program);
+      // Add custom uniforms
+      for (const name of customUniformNames || []) {
+        uniformLocations.set(name, gl.getUniformLocation(program, name));
+      }
 
-    const posLoc = gl.getAttribLocation(program, "a_position");
-    gl.enableVertexAttribArray(posLoc);
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+      drawRef.current = { program, uniformLocations };
 
-    const prev = drawRef.current;
+      if (prev) gl.deleteProgram(prev.program);
+    };
 
-    const uniformLocations = new Map<string, WebGLUniformLocation | null>();
-    uniformLocations.set(
-      "u_resolution",
-      gl.getUniformLocation(program, "u_resolution"),
-    );
-    uniformLocations.set("u_time", gl.getUniformLocation(program, "u_time"));
-    uniformLocations.set("u_frame", gl.getUniformLocation(program, "u_frame"));
-    uniformLocations.set("u_bands", gl.getUniformLocation(program, "u_bands"));
-    uniformLocations.set("u_beat", gl.getUniformLocation(program, "u_beat"));
-
-    // Add custom uniforms
-    for (const name of customUniformNames || []) {
-      uniformLocations.set(name, gl.getUniformLocation(program, name));
-    }
-
-    drawRef.current = { program, uniformLocations };
-
-    if (prev) gl.deleteProgram(prev.program);
+    recompile();
   }, [code, customUniformNames, onError]);
 
   return (

@@ -1,15 +1,14 @@
 # satchel
 
-A GLSL fragment shader editor built for live coding and performance to the specific desires of [Sam Randa](https://samranda.com). 
+A GLSL fragment shader editor built for live coding and performance to the specific desires of [Sam Randa](https://samranda.com).
 
 Supports:
 - live updates
 - multiple output windows
 - debug/inspection previews
 - audio analysis w/ live beat detection
-- save/load
-
-With [lygia](https://lygia.xyz) support soon.
+- save/load w/ preview images
+- [lygia](https://lygia.xyz) shader library support (via `#include` directives)
 
 ## Keybinds
 
@@ -21,7 +20,9 @@ The editor (`/`) renders a CodeMirror instance overlaid on a WebGL canvas. As yo
 
 The viewer (`/view`) is a fullscreen WebGL canvas intended for display or projection. It receives shader code and uniform updates from the editor via the [BroadcastChannel API](https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel), meaning both windows must be open in the same browser on the same machine.
 
-Keep in mind that if the editor is open in other tab (not window) it may lazily reload uniforms and cause very infrequent updates to view windows. Make sure the editor is visible in a separate window to make sure it's recomputed each frame.
+## Notes
+
+Keep in mind that if the editor is open in other tab (not window) as the viewer, it may lazily reload uniforms and cause very infrequent updates to view windows. Make sure the editor is visible in a separate window to make sure it's recomputed each frame.
 
 Shared uniforms available in every shader:
 

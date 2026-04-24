@@ -13,6 +13,7 @@
     "@codemirror/legacy-modes": "^6.5.2",
     "codemirror": "^6.0.2",
     "idb": "^8.0.3",
+    "lygia": "^1.4.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "web-audio-beat-detector": "^8.2.35"
