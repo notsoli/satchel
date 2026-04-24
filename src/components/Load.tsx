@@ -66,6 +66,11 @@ export default function Load({
         overflowY: "auto",
       }}
     >
+      {items.length === 0 && (
+        <div style={{ textAlign: "center" }}>
+          No shaders; any saved shaders will appear here.
+        </div>
+      )}
       {items.map((item) => (
         <div key={item.id} style={{ display: "flex", gap: "0.5rem" }}>
           <img
