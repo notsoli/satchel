@@ -20,6 +20,8 @@ import EditorHeader from "./EditorHeader";
 import { createSender } from "../lib/channel";
 import Load from "./Load";
 import Save from "./Save";
+import { defaultOptions } from "../lib/options";
+import { Options } from "./Options";
 
 const INITIAL_SHADER = `// satchel - sam randa
 // a glsl live coding environment with some bells and whistles
@@ -121,6 +123,8 @@ export default function Editor() {
   ]);
   const [shaderError, setShaderError] = useState<string | null>(null);
   const [processError, setProcessError] = useState<string | null>(null);
+  const [options, setOptions] = useState(defaultOptions);
+  const ctrlEnterCompileRef = useRef<boolean>(false);
 
   function updateShaderCode(code: string) {
     const shaderView = shaderViewRef.current;
@@ -162,10 +166,17 @@ export default function Editor() {
     }
   }, [processCode]);
 
-  // handle key down for inspect
+  // handle ctrl+enter compile
+  useEffect(() => {
+    ctrlEnterCompileRef.current = options.ctrl_enter_compile;
+  }, [options]);
+
+  // handle hotkeys
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (mode !== "shader") return;
+
+      // handle key down for inspect
       if ((event.ctrlKey || event.metaKey) && event.key === "p") {
         event.preventDefault();
         setInspectCode(null);
@@ -193,13 +204,26 @@ export default function Editor() {
           cursorPositionRef.current[1] + 20,
         ]);
       }
+
+      // handle ctrl+enter compile
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        event.key === "Enter" &&
+        options.ctrl_enter_compile
+      ) {
+        const code = shaderViewRef.current?.state.doc.toString();
+        if (code) {
+          setShaderCode(code);
+          senderRef.current?.sendShader(code);
+        }
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [shaderCode, mode]);
+  }, [shaderCode, mode, options]);
 
   // kickstart time uniform
   useEffect(() => {
@@ -211,6 +235,7 @@ export default function Editor() {
     senderRef.current = createSender();
     senderRef.current?.sendShader(INITIAL_SHADER);
     senderRef.current?.sendUniforms(uniformsRef.current);
+    senderRef.current?.sendOptions(defaultOptions);
 
     return () => {
       senderRef.current?.close();
@@ -256,6 +281,11 @@ export default function Editor() {
     }
   }, [processCode]);
 
+  // send options when changed
+  useEffect(() => {
+    senderRef.current?.sendOptions(options);
+  }, [options]);
+
   // create codemirror views for shader & process editor
   useEffect(() => {
     const shaderView = new EditorView({
@@ -271,8 +301,12 @@ export default function Editor() {
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               const code = update.state.doc.toString();
-              setShaderCode(code);
-              senderRef.current?.sendShader(code);
+
+              if (!ctrlEnterCompileRef.current) {
+                console.log("updating");
+                setShaderCode(code);
+                senderRef.current?.sendShader(code);
+              }
             }
             if (update.selectionSet) {
               setInspectCode(null);
@@ -321,6 +355,7 @@ export default function Editor() {
       }}
     >
       <EditorHeader uniformsRef={uniformsRef} mode={mode} setMode={setMode} />
+      <Options options={options} setOptions={setOptions} />
       <Load
         updateShaderCode={updateShaderCode}
         updateProcessCode={updateProcessCode}

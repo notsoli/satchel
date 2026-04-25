@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Preview from "./Preview";
 import { initializeSharedUniforms } from "../lib/uniforms";
 import { createReceiver } from "../lib/channel";
+import { defaultOptions } from "../lib/options";
 
 const testShader = `
 void main() {
@@ -13,6 +14,7 @@ export default function Viewer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const uniformsRef = useRef(initializeSharedUniforms());
   const [code, setCode] = useState(testShader);
+  const [options, setOptions] = useState({ ...defaultOptions });
   const [customUniformNames, setCustomUniformNames] = useState<string[]>([]);
   const [hasSender, setHasSender] = useState(false);
 
@@ -22,6 +24,7 @@ export default function Viewer() {
       if (msg.type === "shader") setCode(msg.code);
       if (msg.type === "uniforms") uniformsRef.current = msg.uniforms;
       if (msg.type === "customUniformNames") setCustomUniformNames(msg.names);
+      if (msg.type === "options") setOptions(msg.options);
     });
     return () => {
       receiver.close();
@@ -59,12 +62,34 @@ export default function Viewer() {
     );
 
   return (
-    <div ref={containerRef} style={{ width: "100vw", height: "100vh" }}>
-      <Preview 
-        code={code} 
-        uniformsRef={uniformsRef} 
+    <div
+      ref={containerRef}
+      style={{ width: "100vw", height: "100vh", position: "relative" }}
+    >
+      <Preview
+        code={code}
+        uniformsRef={uniformsRef}
         customUniformNames={customUniformNames}
       />
+      {options.show_code_overlay && (
+        <pre
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            padding: "1rem",
+          }}
+        >
+          <mark
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              color: "white",
+            }}
+          >
+            {code}
+          </mark>
+        </pre>
+      )}
     </div>
   );
 }

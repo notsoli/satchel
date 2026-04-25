@@ -1,9 +1,11 @@
+import type { Options } from "./options";
 import type { SharedUniforms, CustomUniforms } from "./uniforms";
 
 type Message =
   | { type: "shader"; code: string }
   | { type: "uniforms"; uniforms: SharedUniforms & CustomUniforms }
-  | { type: "customUniformNames"; names: string[] };
+  | { type: "customUniformNames"; names: string[] }
+  | { type: "options"; options: Options };
 
 const NAME = "satchel";
 
@@ -15,6 +17,8 @@ export function createSender() {
       ch.postMessage({ type: "uniforms", uniforms }),
     sendCustomUniformNames: (names: string[]) =>
       ch.postMessage({ type: "customUniformNames", names }),
+    sendOptions: (options: Options) =>
+      ch.postMessage({ type: "options", options }),
     close: () => ch.close(),
   };
 }

@@ -66,6 +66,13 @@ export default function EditorHeader({
           process
         </button>
       </div>
+      <button
+        popoverTarget="options-popover"
+        className="linkButton"
+        style={{ marginLeft: "0.5rem" }}
+      >
+        options
+      </button>
       <a
         href="/view/"
         target="_blank"
