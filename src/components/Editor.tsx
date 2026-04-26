@@ -211,6 +211,7 @@ export default function Editor() {
         event.key === "Enter" &&
         options.ctrl_enter_compile
       ) {
+        event.preventDefault();
         const code = shaderViewRef.current?.state.doc.toString();
         if (code) {
           setShaderCode(code);
@@ -303,7 +304,6 @@ export default function Editor() {
               const code = update.state.doc.toString();
 
               if (!ctrlEnterCompileRef.current) {
-                console.log("updating");
                 setShaderCode(code);
                 senderRef.current?.sendShader(code);
               }
@@ -462,6 +462,7 @@ export default function Editor() {
             <Preview
               code={inspectCode}
               uniformsRef={uniformsRef}
+              customUniformNames={customUniformNames}
               onError={(error) => {
                 if (!error) return;
                 setShaderError(`CAN'T INSPECT:\n${error}`);
